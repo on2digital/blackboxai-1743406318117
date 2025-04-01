@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
