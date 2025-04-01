@@ -37,17 +37,38 @@ export default function OutputPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
+  const location = useLocation()
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true)
         setError(null)
-        // TODO: Replace with actual API call
-        // const response = await fetch('/api/results/123')
-        // if (!response.ok) throw new Error('Failed to fetch output data')
-        // const data = await response.json()
-        // setFilteredData(data)
-        setFilteredData(sampleData) // Temporary mock data
+        const documentId = new URLSearchParams(location.search).get('id')
+        if (!documentId) throw new Error('No document ID provided')
+        
+        const response = await axios.get(
+          `${process.env.REACT_APP_API_BASE_URL}/results/${documentId}`
+        )
+
+        if (response.data.status === 'completed') {
+          setFilteredData({
+            content: {
+              text: response.data.content,
+              tables: [], // Will be populated from actual data
+              images: []  // Will be populated from actual data
+            },
+            metadata: response.data.metadata || {
+              filename: 'document',
+              pages: 1,
+              created: new Date().toISOString(),
+              processed: new Date().toISOString()
+            }
+          })
+        } else {
+          // Poll if still processing
+          setTimeout(fetchData, 2000)
+        }
       } catch (err) {
         setError(err)
       } finally {
@@ -55,7 +76,7 @@ export default function OutputPage() {
       }
     }
     fetchData()
-  }, [])
+  }, [location.search])
 
   const handleCopy = () => {
     navigator.clipboard.writeText(JSON.stringify(filteredData, null, 2))
