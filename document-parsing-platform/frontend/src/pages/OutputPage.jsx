@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { FaCopy, FaDownload, FaSearch } from 'react-icons/fa'
 import { Prism as SyntaxHighlighter } from 'prism-react-renderer'
-import { vs } from 'prism-react-renderer/themes'
 import ErrorDisplay from '../components/ErrorDisplay'
 
 const sampleData = {
@@ -179,7 +178,6 @@ export default function OutputPage() {
               <div className="overflow-auto max-h-[600px]">
                 <SyntaxHighlighter
                   language="json"
-                  style={vs}
                   customStyle={{ background: 'transparent' }}
                 >
                   {JSON.stringify(filteredData.content, null, 2)}
