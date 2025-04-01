@@ -29,6 +29,24 @@ def token_required(f):
         return f(*args, **kwargs)
     return decorated
 
+# Authentication
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    auth = request.json
+    if not auth or not auth.get('email') or not auth.get('password'):
+        return jsonify({'message': 'Email and password required'}), 400
+    
+    # TODO: Replace with actual user validation
+    if auth['email'] == 'admin@example.com' and auth['password'] == 'password':
+        token = jwt.encode(
+            {'email': auth['email'], 'exp': datetime.utcnow() + timedelta(hours=24)},
+            app.config['SECRET_KEY'],
+            algorithm="HS256"
+        )
+        return jsonify({'token': token}), 200
+    
+    return jsonify({'message': 'Invalid credentials'}), 401
+
 # API Endpoints
 @app.route('/api/upload', methods=['POST'])
 @token_required
