@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { FaCopy, FaDownload, FaSearch } from 'react-icons/fa'
 import { Prism as SyntaxHighlighter } from 'prism-react-renderer'
 import { vs } from 'prism-react-renderer/themes'
+import ErrorDisplay from '../components/ErrorDisplay'
 
 const sampleData = {
   content: {
@@ -34,10 +35,27 @@ export default function OutputPage() {
   const [outputFormat, setOutputFormat] = useState('json')
   const [searchTerm, setSearchTerm] = useState('')
   const [filteredData, setFilteredData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    // TODO: Replace with actual data fetching
-    setFilteredData(sampleData)
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        // TODO: Replace with actual API call
+        // const response = await fetch('/api/results/123')
+        // if (!response.ok) throw new Error('Failed to fetch output data')
+        // const data = await response.json()
+        // setFilteredData(data)
+        setFilteredData(sampleData) // Temporary mock data
+      } catch (err) {
+        setError(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
   }, [])
 
   const handleCopy = () => {
@@ -61,8 +79,17 @@ export default function OutputPage() {
     alert(`Searching for: ${searchTerm}`)
   }
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
+      <ErrorDisplay error={error} onRetry={() => window.location.reload()} />
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800">Document Output</h1>
         <div className="flex space-x-3">
@@ -136,7 +163,8 @@ export default function OutputPage() {
               </button>
               <button
                 onClick={handleDownload}
-                className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                disabled={loading}
               >
                 <FaDownload className="mr-2" />
                 Download
