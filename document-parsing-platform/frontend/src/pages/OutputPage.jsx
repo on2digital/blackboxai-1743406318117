@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { useParams, useLocation } from 'react-router-dom'
+import axios from 'axios'
 import { FaCopy, FaDownload, FaSearch } from 'react-icons/fa'
 import SyntaxHighlighter from 'prism-react-renderer/prism'
 import ErrorDisplay from '../components/ErrorDisplay'
@@ -37,6 +39,7 @@ export default function OutputPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
+  const { documentId } = useParams()
   const location = useLocation()
 
   useEffect(() => {
@@ -44,11 +47,15 @@ export default function OutputPage() {
       try {
         setLoading(true)
         setError(null)
-        const documentId = new URLSearchParams(location.search).get('id')
-        if (!documentId) throw new Error('No document ID provided')
+        if (!documentId) {
+          throw new Error('Invalid document ID')
+        }
         
         const response = await axios.get(
-          `${process.env.REACT_APP_API_BASE_URL}/results/${documentId}`
+          `${process.env.REACT_APP_API_BASE_URL}/results/${documentId}`,
+          {
+            validateStatus: (status) => status < 500
+          }
         )
 
         if (response.data.status === 'completed') {
@@ -76,7 +83,7 @@ export default function OutputPage() {
       }
     }
     fetchData()
-  }, [location.search])
+  }, [documentId, location.search])
 
   const handleCopy = () => {
     navigator.clipboard.writeText(JSON.stringify(filteredData, null, 2))
