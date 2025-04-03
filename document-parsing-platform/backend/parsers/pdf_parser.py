@@ -1,11 +1,16 @@
 import PyPDF2
 import io
+import base64
+import logging
 from typing import Dict, Any
 from PIL import Image
 import pytesseract
 import cv2
 import numpy as np
 import json
+import os
+
+logger = logging.getLogger(__name__)
 
 class PDFParser:
     def __init__(self, ocr_languages: list = ['eng']):
@@ -14,6 +19,11 @@ class PDFParser:
 
     def parse(self, file_path: str) -> Dict[str, Any]:
         """Parse a PDF file and extract text, images, and metadata"""
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"File not found: {file_path}")
+        if not file_path.lower().endswith('.pdf'):
+            raise ValueError("Invalid file type. Only PDF files are supported")
+
         result = {
             'text': '',
             'tables': [],
@@ -22,6 +32,7 @@ class PDFParser:
         }
 
         try:
+            logger.info(f"Starting PDF parsing for: {file_path}")
             with open(file_path, 'rb') as file:
                 # Extract text and metadata
                 pdf_reader = PyPDF2.PdfReader(file)
@@ -54,7 +65,8 @@ class PDFParser:
             return result
 
         except Exception as e:
-            raise Exception(f"PDF parsing failed: {str(e)}")
+            logger.error(f"PDF parsing failed for {file_path}: {str(e)}", exc_info=True)
+            raise Exception(f"PDF parsing failed: {str(e)}") from e
 
     def _extract_pdf_image(self, image_obj) -> Image.Image:
         """Extract image from PDF XObject"""
@@ -66,7 +78,8 @@ class PDFParser:
                 return Image.open(io.BytesIO(image_obj.get_data()))
             elif image_obj['/Filter'] == '/JPXDecode':
                 return Image.open(io.BytesIO(image_obj.get_data()))
-        except:
+        except Exception as e:
+            logger.warning(f"Image extraction failed: {str(e)}")
             return None
 
     def _perform_ocr(self, image: Image.Image) -> str:
@@ -83,7 +96,7 @@ class PDFParser:
             languages = '+'.join(self.ocr_languages + self.handwriting_languages)
             return pytesseract.image_to_string(thresh, lang=languages)
         except Exception as e:
-            print(f"OCR failed: {str(e)}")
+            logger.error(f"OCR failed: {str(e)}", exc_info=True)
             return ""
 
     def _image_to_base64(self, image: Image.Image) -> str:
