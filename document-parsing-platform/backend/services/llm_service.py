@@ -2,6 +2,8 @@ from typing import Dict, Any, Optional
 import logging
 from abc import ABC, abstractmethod
 import requests
+import time
+from functools import wraps
 import os
 import json
 from enum import Enum
@@ -57,7 +59,25 @@ class GoogleAIService(BaseLLMService):
                 "maxOutputTokens": kwargs.get('max_tokens', 2048)
             }
             
-            response = requests.post(
+            def retry_request(url, headers, params, max_retries=3):
+                for attempt in range(max_retries):
+                    try:
+                        response = requests.post(
+                            url,
+                            headers=headers,
+                            json=params,
+                            timeout=10
+                        )
+                        response.raise_for_status()
+                        return response
+                    except requests.exceptions.RequestException as e:
+                        if attempt == max_retries - 1:
+                            raise
+                        wait_time = 2 ** (attempt + 1)
+                        self.logger.warning(f"Attempt {attempt + 1} failed. Retrying in {wait_time} seconds...")
+                        time.sleep(wait_time)
+
+            response = retry_request(
                 f"https://generativelanguage.googleapis.com/v1beta/models/{self.config['model_name']}:generateText",
                 headers=headers,
                 json=params
@@ -76,7 +96,7 @@ class GoogleAIService(BaseLLMService):
                 "Content-Type": "application/json"
             }
             
-            response = requests.post(
+            response = retry_request(
                 f"https://generativelanguage.googleapis.com/v1beta/models/{self.config['model_name']}:embedText",
                 headers=headers,
                 json={"text": text}
